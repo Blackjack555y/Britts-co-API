@@ -111,21 +111,29 @@ app.post('/api/formulario', upload.single('archivo'), async (req, res) => {
   }
 });
 
-// Servir archivos estáticos (opcional)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// === ROUTERS Y RUTAS ===
+const db = require('./db');
 
-// Iniciar servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
-
+// Requerimientos DB
 const requerimientosdb = require('./requerimientosdb');
 app.use('/api/requerimientosdb', requerimientosdb);
 
+// Contacto DB (persistencia de mensajes de contacto)
+const contactodb = require('./contactodb');
+app.use('/api/contactodb', contactodb);
 
+// Descargas
+const descargasRoute = require('./descargas');
+app.use('/', descargasRoute);
+
+// Anuncios (banner superior)
+const anuncios = require('./anuncios');
+app.use('/api/anuncios', anuncios);
+
+// Servir archivos estáticos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// Formulario de contacto
+
+// Formulario de contacto (email-only legacy endpoint)
 
 app.post('/api/contacto', upload.single('archivo'), async (req, res) => {
   const { nombre, email, asunto, mensaje } = req.body;
@@ -165,15 +173,7 @@ app.post('/api/contacto', upload.single('archivo'), async (req, res) => {
   }
 });
 
-const db = require('./db');
-// Ruta de descargas
-const descargasRoute = require('./descargas');
-app.use('/', descargasRoute);
-
-// 📣 Anuncios (banner superior)
-const anuncios = require('./anuncios');
-app.use('/api/anuncios', anuncios);
-
+// DBW00001 legacy query endpoint
 app.get('/api/dbw00001', (req, res) => {
   db.query('SELECT * FROM DBW00001', (err, results) => {
     if (err) {
@@ -207,6 +207,11 @@ app.post('/api/login', (req, res) => {
   }
 });
 
+// === INICIAR SERVIDOR ===
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
 
 
 

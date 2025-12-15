@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "migrate:anuncios": "node scripts/migrate-anuncios-targeting.js"
+    "migrate:anuncios": "node scripts/migrate-anuncios-targeting.js",
+    "db:tables": "node scripts/list-tables.js",
+    "migrate:contactos": "node scripts/migrate-contactos.js"
   },
   "keywords": [],
   "author": "",
