@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carousel Feature Tester</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    label {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    
+    input[type="text"],
+    input[type="file"],
+    textarea,
+    select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    button {
+      padding: 12px 25px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background: #764ba2;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .message {
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 15px;
+      display: none;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    
+    .carousel-display {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    #carousel-main {
+      max-width: 100%;
+      max-height: 400px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    
+    #carousel-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .carousel-btn {
+      padding: 8px 15px;
+      font-size: 0.9em;
+    }
+    
+    #carousel-thumbnails {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    .thumbnail {
+      width: 70px;
+      height: 70px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .thumbnail.active {
+      border-color: #667eea;
+      box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    }
+    
+    .thumbnail:hover {
+      transform: scale(1.05);
+    }
+    
+    .carousel-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 5px;
+    }
+    
+    .carousel-info p {
+      margin: 5px 0;
+      color: #666;
+    }
+    
+    .carousel-info strong {
+      color: #333;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .status {
+      padding: 10px;
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    
+    .status.loading {
+      background: #fff3cd;
+      border-left-color: #ff9800;
+    }
+    
+    .status.error {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎠 Carousel Announcement Feature Tester</h1>
+    
+    <div class="grid">
+      <!-- Create/Update Carousel Section -->
+      <div class="section">
+        <h2>Create Carousel</h2>
+        <div class="status" id="status" style="display: none;"></div>
+        
+        <form id="carouselForm">
+          <div class="form-group">
+            <label for="titulo">Título (opcional)</label>
+            <input type="text" id="titulo" name="titulo" placeholder="e.g., Summer Collection">
+          </div>
+          
+          <div class="form-group">
+            <label for="mensaje">Mensaje *</label>
+            <textarea id="mensaje" name="mensaje" placeholder="Announcement message" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="image">Imagen Principal *</label>
+            <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif" required>
+            <small>JPEG, PNG or GIF. Max 5MB</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="carousel_images">Imágenes del Carrusel (2+) *</label>
+            <input type="file" id="carousel_images" name="carousel_images" multiple accept="image/jpeg,image/png,image/gif" required>
+            <small>Select at least 2 images for carousel rotation</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="link_url">URL de Enlace (opcional)</label>
+            <input type="text" id="link_url" name="link_url" placeholder="https://example.com">
+          </div>
+          
+          <div class="form-group">
+            <label for="activo">
+              <input type="checkbox" id="activo" name="activo">
+              Activar inmediatamente
+            </label>
+          </div>
+          
+          <button type="submit" id="submitBtn">Crear Carrusel</button>
+        </form>
+        
+        <div id="createMessage" class="message"></div>
+      </div>
+      
+      <!-- View Active Carousel Section -->
+      <div class="section">
+        <h2>Active Carousel Preview</h2>
+        
+        <button onclick="loadActiveCarousel()" style="width: 100%; margin-bottom: 15px;">
+          🔄 Refresh Active Carousel
+        </button>
+        
+        <div id="carouselContainer" class="carousel-display" style="display: none;">
+          <img id="carousel-main" src="" alt="Carousel main image">
+          
+          <div id="carousel-controls">
+            <button class="carousel-btn" onclick="previousSlide()">← Previous</button>
+            <span id="slide-counter" style="align-self: center; font-weight: bold;"></span>
+            <button class="carousel-btn" onclick="nextSlide()">Next →</button>
+          </div>
+          
+          <div id="carousel-thumbnails"></div>
+          
+          <div class="carousel-info">
+            <p><strong>Título:</strong> <span id="carousel-title">-</span></p>
+            <p><strong>Mensaje:</strong> <span id="carousel-message">-</span></p>
+            <p><strong>Enlace:</strong> <span id="carousel-link">-</span></p>
+            <p><strong>Dismissible:</strong> <span id="carousel-dismissible">-</span></p>
+            <p><strong>Created:</strong> <span id="carousel-created">-</span></p>
+          </div>
+        </div>
+        
+        <div id="noCarousel" style="padding: 20px; text-align: center; color: #999;">
+          No active carousel. Submit one above or refresh to check.
+        </div>
+        
+        <div id="carouselMessage" class="message"></div>
+      </div>
+    </div>
+    
+    <!-- List All Carousels Section -->
+    <div class="section">
+      <h2>All Carousels</h2>
+      
+      <div class="form-group">
+        <label for="authToken">Authentication Token</label>
+        <input type="password" id="authToken" placeholder="Enter your JWT token">
+        <button onclick="loadAllCarousels()" style="margin-top: 10px;">List All Carousels</button>
+      </div>
+      
+      <div id="carouselList" style="margin-top: 20px;"></div>
+      <div id="listMessage" class="message"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentCarousel = null;
+    let currentSlideIndex = 0;
+    
+    // Create carousel form submission
+    document.getElementById('carouselForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const token = document.getElementById('authToken').value;
+      
+      if (!token) {
+        showMessage('createMessage', 'error', 'Please provide authentication token');
+        return;
+      }
+      
+      // Validate carousel images count
+      const carouselFiles = document.getElementById('carousel_images').files;
+      if (carouselFiles.length < 2) {
+        showMessage('createMessage', 'error', 'Please select at least 2 carousel images');
+        return;
+      }
+      
+      showStatus('status', 'Uploading carousel...', 'loading');
+      
+      try {
+        const response = await fetch('/api/anuncios', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          showMessage('createMessage', 'error', result.error || 'Failed to create carousel');
+          showStatus('status', '', 'error');
+          return;
+        }
+        
+        showMessage('createMessage', 'success', 
+          `Carousel created successfully! ID: ${result.data.id}`);
+        
+        // Reset form
+        e.target.reset();
+        document.getElementById('authToken').value = token;
+        
+        // Load the carousel
+        setTimeout(() => loadActiveCarousel(), 1000);
+        
+      } catch (err) {
+        showMessage('createMessage', 'error', `Network error: ${err.message}`);
+      } finally {
+        showStatus('status', '', '');
+      }
+    });
+    
+    async function loadActiveCarousel() {
+      try {
+        const response = await fetch('/api/anuncios/activo');
+        
+        if (response.status === 204) {
+          document.getElementById('carouselContainer').style.display = 'none';
+          document.getElementById('noCarousel').style.display = 'block';
+          showMessage('carouselMessage', 'success', 'No active carousel found');
+          return;
+        }
+        
+        const announcement = await response.json();
+        
+        if (announcement.tipo !== 'carousel') {
+          document.getElementById('carouselContainer').style.display = 'none';
+          document.getElementById('noCarousel').style.display = 'block';
+          showMessage('carouselMessage', 'success', 
+            `Active announcement is a ${announcement.tipo}, not a carousel`);
+          return;
+        }
+        
+        currentCarousel = announcement;
+        currentSlideIndex = 0;
+        displayCarousel();
+        
+      } catch (err) {
+        showMessage('carouselMessage', 'error', `Error: ${err.message}`);
+      }
+    }
+    
+    function displayCarousel() {
+      if (!currentCarousel || !currentCarousel.carousel_images) return;
+      
+      const images = currentCarousel.carousel_images;
+      
+      // Update main image
+      document.getElementById('carousel-main').src = images[currentSlideIndex];
+      
+      // Update slide counter
+      document.getElementById('slide-counter').textContent = 
+        `${currentSlideIndex + 1} / ${images.length}`;
+      
+      // Update info
+      document.getElementById('carousel-title').textContent = 
+        currentCarousel.titulo || 'N/A';
+      document.getElementById('carousel-message').textContent = 
+        currentCarousel.mensaje || 'N/A';
+      document.getElementById('carousel-link').textContent = 
+        currentCarousel.link_url || 'None';
+      document.getElementById('carousel-dismissible').textContent = 
+        currentCarousel.dismissible ? 'Yes' : 'No';
+      document.getElementById('carousel-created').textContent = 
+        new Date(currentCarousel.created_at).toLocaleString();
+      
+      // Create thumbnails
+      const thumbContainer = document.getElementById('carousel-thumbnails');
+      thumbContainer.innerHTML = '';
+      
+      images.forEach((img, index) => {
+        const thumb = document.createElement('img');
+        thumb.src = img;
+        thumb.className = `thumbnail ${index === currentSlideIndex ? 'active' : ''}`;
+        thumb.onclick = () => {
+          currentSlideIndex = index;
+          displayCarousel();
+        };
+        thumbContainer.appendChild(thumb);
+      });
+      
+      document.getElementById('carouselContainer').style.display = 'block';
+      document.getElementById('noCarousel').style.display = 'none';
+    }
+    
+    function nextSlide() {
+      if (!currentCarousel) return;
+      currentSlideIndex = (currentSlideIndex + 1) % currentCarousel.carousel_images.length;
+      displayCarousel();
+    }
+    
+    function previousSlide() {
+      if (!currentCarousel) return;
+      currentSlideIndex = (currentSlideIndex - 1 + currentCarousel.carousel_images.length) 
+        % currentCarousel.carousel_images.length;
+      displayCarousel();
+    }
+    
+    async function loadAllCarousels() {
+      const token = document.getElementById('authToken').value;
+      
+      if (!token) {
+        showMessage('listMessage', 'error', 'Please provide authentication token');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/anuncios', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          showMessage('listMessage', 'error', result.error || 'Failed to load carousels');
+          return;
+        }
+        
+        const carousels = result.data.filter(item => item.tipo === 'carousel');
+        
+        if (carousels.length === 0) {
+          document.getElementById('carouselList').innerHTML = 
+            '<p style="text-align: center; color: #999;">No carousels found</p>';
+          return;
+        }
+        
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<tr style="background: #f0f0f0; font-weight: bold;">' +
+          '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">ID</th>' +
+          '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Title</th>' +
+          '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Active</th>' +
+          '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Images</th>' +
+          '<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Created</th>' +
+          '</tr>';
+        
+        carousels.forEach(carousel => {
+          const created = new Date(carousel.created_at).toLocaleDateString();
+          const imageCount = carousel.carousel_images ? carousel.carousel_images.length : 0;
+          const active = carousel.activo ? '✅' : '❌';
+          
+          html += `<tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px; border: 1px solid #ddd;">${carousel.id}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${carousel.titulo || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${active}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${imageCount}</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${created}</td>
+          </tr>`;
+        });
+        
+        html += '</table>';
+        
+        document.getElementById('carouselList').innerHTML = html;
+        showMessage('listMessage', 'success', `Found ${carousels.length} carousel(s)`);
+        
+      } catch (err) {
+        showMessage('listMessage', 'error', `Network error: ${err.message}`);
+      }
+    }
+    
+    function showMessage(elementId, type, message) {
+      const element = document.getElementById(elementId);
+      element.textContent = message;
+      element.className = `message ${type}`;
+    }
+    
+    function showStatus(elementId, message, type) {
+      const element = document.getElementById(elementId);
+      if (message) {
+        element.textContent = message;
+        element.className = `status ${type}`;
+        element.style.display = 'block';
+      } else {
+        element.style.display = 'none';
+      }
+    }
+    
+    // Load carousel on page load
+    window.addEventListener('load', loadActiveCarousel);
+  </script>
+</body>
+</html>

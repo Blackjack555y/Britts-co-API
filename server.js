@@ -12,10 +12,17 @@ app.use(cors({
   origin: [
     'https://brittsco.com',
     'https://www.brittsco.com',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5500', // VS Code Live Server
+    'http://127.0.0.1:5500'
   ],
-  methods: ['GET', 'POST'],
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 app.use(express.json());
@@ -185,7 +192,8 @@ app.get('/api/dbw00001', (req, res) => {
   });
 });
 
-const { verificarLogin } = require('./login'); // Asegúrate que login.js esté en la raíz o ajusta el path
+const { verificarLogin } = require('./login');
+const { generateToken } = require('./middleware/auth');
 
 app.post('/api/login', (req, res) => {
   const { usuario, contrasena } = req.body;
@@ -197,12 +205,16 @@ app.post('/api/login', (req, res) => {
   const resultado = verificarLogin(usuario, contrasena);
 
   if (resultado.success) {
+    const token = generateToken({ codigo: resultado.codigo, nombre: resultado.nombre });
+    console.log('✅ [Login] Usuario autenticado:', resultado.codigo);
     return res.status(200).json({
       success: true,
       codigo: resultado.codigo,
       nombre: resultado.nombre,
+      token: token // JWT token for subsequent requests
     });
   } else {
+    console.log('❌ [Login] Credenciales inválidas para:', usuario);
     return res.status(401).json({ success: false, error: resultado.error });
   }
 });

@@ -6,6 +6,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "migrate:anuncios": "node scripts/migrate-anuncios-targeting.js",
+    "migrate:anuncios-images": "node scripts/migrate-anuncios-images.js",
+    "migrate:carousel": "node scripts/migrate-carousel-support.js",
+    "migrate:fix-autoincrement": "node scripts/fix-autoincrement-id.js",
+    "migrate:all": "npm run migrate:anuncios-images && npm run migrate:carousel && npm run migrate:fix-autoincrement",
     "db:tables": "node scripts/list-tables.js",
     "migrate:contactos": "node scripts/migrate-contactos.js"
   },
@@ -18,6 +22,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.0",
     "mysql": "^2.18.1",
     "nodemailer": "^7.0.3"

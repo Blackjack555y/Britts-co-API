@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Banner API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #2196F3;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+            color: #2e7d32;
+        }
+        .error {
+            border-color: #f44336;
+            background: #fff5f5;
+            color: #c62828;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.fail {
+            background: #f44336;
+            color: white;
+        }
+        input[type="text"], input[type="password"] {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 CORS Test - Banner API System</h1>
+        
+        <div class="test-section">
+            <h2>1️⃣ Test Public Endpoint (GET /api/anuncios/activo)</h2>
+            <p>This endpoint should work without authentication and CORS should allow the request.</p>
+            <button onclick="testPublicEndpoint()">Test Public Endpoint</button>
+            <div id="result1" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2️⃣ Get JWT Token (POST /api/login)</h2>
+            <p>Login to get a JWT token for protected endpoints.</p>
+            <div>
+                <input type="text" id="username" placeholder="Usuario" value="">
+                <input type="password" id="password" placeholder="Contraseña" value="">
+            </div>
+            <button onclick="testLogin()">Login & Get Token</button>
+            <div id="result2" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3️⃣ Test Protected Endpoint (GET /api/anuncios)</h2>
+            <p>List all banners (requires JWT token from step 2).</p>
+            <button onclick="testProtectedEndpoint()" id="protectedBtn" disabled>Test Protected Endpoint</button>
+            <div id="result3" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4️⃣ Test OPTIONS (Preflight)</h2>
+            <p>Test CORS preflight request for PUT/PATCH/DELETE methods.</p>
+            <button onclick="testPreflight()">Test Preflight</button>
+            <div id="result4" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5️⃣ Test Image Upload (POST with multipart/form-data)</h2>
+            <p>Test creating a banner with image upload (requires token).</p>
+            <input type="file" id="imageFile" accept="image/jpeg,image/png,image/gif">
+            <button onclick="testImageUpload()" id="uploadBtn" disabled>Test Image Upload</button>
+            <div id="result5" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let authToken = null;
+
+        function showResult(elementId, message, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = `result ${isSuccess ? 'success' : 'error'}`;
+            el.textContent = message;
+        }
+
+        async function testPublicEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/api/anuncios/activo`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const status = response.status;
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+
+                let result = `✅ CORS Test Passed!\n\nStatus: ${status}\n\n`;
+                result += `CORS Headers:\n`;
+                result += `- Access-Control-Allow-Origin: ${headers['access-control-allow-origin'] || 'NOT SET'}\n`;
+                result += `- Access-Control-Allow-Credentials: ${headers['access-control-allow-credentials'] || 'NOT SET'}\n\n`;
+
+                if (status === 204) {
+                    result += `Response: No active banner (204 No Content) - This is correct!`;
+                } else if (status === 200) {
+                    const data = await response.json();
+                    result += `Response Data:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    result += `Unexpected status: ${status}`;
+                }
+
+                showResult('result1', result, true);
+            } catch (error) {
+                showResult('result1', `❌ CORS Error!\n\n${error.message}\n\nThis means CORS is blocking the request.`, false);
+            }
+        }
+
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showResult('result2', '❌ Please enter username and password', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario: username,
+                        contrasena: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    document.getElementById('protectedBtn').disabled = false;
+                    document.getElementById('uploadBtn').disabled = false;
+                    
+                    let result = `✅ Login Successful!\n\n`;
+                    result += `Usuario: ${data.nombre} (${data.codigo})\n`;
+                    result += `Token: ${authToken.substring(0, 50)}...\n\n`;
+                    result += `You can now test protected endpoints!`;
+                    
+                    showResult('result2', result, true);
+                } else {
+                    showResult('result2', `❌ Login Failed!\n\n${data.error}`, false);
+                }
+            } catch (error) {
+                showResult('result2', `❌ Error!\n\n${error.message}`, false);
+            }
+        }
+
+        async function testProtectedEndpoint() {
+            if (!authToken) {
+                showResult('result3', '❌ Please login first to get a token', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/anuncios`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const status = response.status;
+                const data = await response.json();
+
+                let result = `✅ Protected Endpoint Test Passed!\n\nStatus: ${status}\n\n`;
+                
+                if (data.success) {
+                    result += `Found ${data.data.length} banner(s):\n\n`;
+                    result += JSON.stringify(data.data, null, 2);
+                } else {
+                    result += `Error: ${data.error}`;
+                }
+
+                showResult('result3', result, data.success);
+            } catch (error) {
+                showResult('result3', `❌ Error!\n\n${error.message}`, false);
+            }
+        }
+
+        async function testPreflight() {
+            try {
+                const response = await fetch(`${API_BASE}/api/anuncios/1`, {
+                    method: 'OPTIONS'
+                });
+
+                const status = response.status;
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+
+                let result = `✅ Preflight Test Passed!\n\nStatus: ${status}\n\n`;
+                result += `CORS Preflight Headers:\n`;
+                result += `- Access-Control-Allow-Origin: ${headers['access-control-allow-origin'] || 'NOT SET'}\n`;
+                result += `- Access-Control-Allow-Methods: ${headers['access-control-allow-methods'] || 'NOT SET'}\n`;
+                result += `- Access-Control-Allow-Headers: ${headers['access-control-allow-headers'] || 'NOT SET'}\n`;
+                result += `- Access-Control-Allow-Credentials: ${headers['access-control-allow-credentials'] || 'NOT SET'}\n\n`;
+                result += `This means PUT, PATCH, DELETE requests should work!`;
+
+                showResult('result4', result, true);
+            } catch (error) {
+                showResult('result4', `❌ Preflight Failed!\n\n${error.message}`, false);
+            }
+        }
+
+        async function testImageUpload() {
+            if (!authToken) {
+                showResult('result5', '❌ Please login first to get a token', false);
+                return;
+            }
+
+            const fileInput = document.getElementById('imageFile');
+            if (!fileInput.files.length) {
+                showResult('result5', '❌ Please select an image file', false);
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('tipo', 'banner');
+                formData.append('titulo', 'Test Banner from CORS Test');
+                formData.append('mensaje', 'This is a test banner created via CORS test');
+                formData.append('activo', 'false');
+                formData.append('dismissible', 'true');
+                formData.append('image', fileInput.files[0]);
+
+                const response = await fetch(`${API_BASE}/api/anuncios`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                let result = ``;
+                if (data.success) {
+                    result = `✅ Image Upload Test Passed!\n\n`;
+                    result += `Status: ${response.status}\n`;
+                    result += `Message: ${data.mensaje}\n\n`;
+                    result += `Banner Created:\n${JSON.stringify(data.data, null, 2)}`;
+                    showResult('result5', result, true);
+                } else {
+                    result = `❌ Upload Failed!\n\n${data.error}`;
+                    showResult('result5', result, false);
+                }
+            } catch (error) {
+                showResult('result5', `❌ Error!\n\n${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>
