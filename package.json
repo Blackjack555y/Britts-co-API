@@ -8,8 +8,9 @@
     "migrate:anuncios": "node scripts/migrate-anuncios-targeting.js",
     "migrate:anuncios-images": "node scripts/migrate-anuncios-images.js",
     "migrate:carousel": "node scripts/migrate-carousel-support.js",
+    "migrate:imagepopup": "node scripts/migrate-imagepopup-support.js",
     "migrate:fix-autoincrement": "node scripts/fix-autoincrement-id.js",
-    "migrate:all": "npm run migrate:anuncios-images && npm run migrate:carousel && npm run migrate:fix-autoincrement",
+    "migrate:all": "npm run migrate:anuncios-images && npm run migrate:carousel && npm run migrate:imagepopup && npm run migrate:fix-autoincrement",
     "db:tables": "node scripts/list-tables.js",
     "migrate:contactos": "node scripts/migrate-contactos.js"
   },

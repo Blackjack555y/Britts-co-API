@@ -7,7 +7,7 @@ const { verifyToken, verifyAdmin } = require('./middleware/auth');
 const { unifiedUpload } = require('./config/multer');
 
 // Allowed types for the banner style (keeping backward compatibility)
-const TIPOS = new Set(['info', 'success', 'warning', 'danger', 'banner', 'popup', 'carousel']);
+const TIPOS = new Set(['info', 'success', 'warning', 'danger', 'banner', 'popup', 'carousel', 'imagepopup']);
 
 // Unified upload handler for all file types (primary + carousel slides)
 const uploadFields = unifiedUpload.fields([
@@ -29,7 +29,7 @@ function rowToApi(r) {
     id: r.id,
     tipo: r.tipo,
     titulo: r.titulo || undefined,
-    mensaje: r.mensaje || undefined,
+    mensaje: r.mensaje || null,
     imagen_url: r.imagen_url || r.image_url || null,
     link_url: r.link_url || undefined,
     activo: !!r.activo,
@@ -121,8 +121,8 @@ router.get('/activo', (req, res) => {
   console.log('📡 [Anuncios] GET /activo - Consultando anuncio activo...');
   
   const sql = `
-    SELECT id, activo, tipo, titulo, mensaje, link_url, imagen_url, dismissible, 
-           starts_at, ends_at, include_pages, exclude_pages, updated_at
+        SELECT id, activo, tipo, titulo, mensaje, link_url, imagen_url, carousel_images, dismissible, 
+          starts_at, ends_at, include_pages, exclude_pages, updated_at
     FROM DBW00003
     WHERE activo = 1
       AND (starts_at IS NULL OR starts_at <= NOW())
@@ -210,36 +210,37 @@ router.post('/', verifyToken, uploadFields, async (req, res) => {
       ends_at = null
     } = req.body;
     
-    // Validation
+    // Validation for tipo
     if (!tipo || !TIPOS.has(tipo)) {
-      if (req.file) deleteImageFile(`/uploads/anuncios/${req.file.filename}`);
-      if (req.files && req.files.length > 0) {
-        req.files.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
-      }
+      const primaryCleanup = req.files?.image?.[0];
+      if (primaryCleanup) deleteImageFile(`/uploads/anuncios/${primaryCleanup.filename}`);
+      const slidesCleanup = req.files?.carousel_images || [];
+      slidesCleanup.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
       return res.status(400).json({ 
         success: false, 
-        error: "tipo requerido. Valores: 'info'|'success'|'warning'|'danger'|'banner'|'popup'|'carousel'" 
+        error: "tipo requerido. Valores: 'info'|'success'|'warning'|'danger'|'banner'|'popup'|'carousel'|'imagepopup'" 
       });
     }
-    
-    // Handle primary image (always in anuncios directory with unified storage)
-    let imagen_url = null;
-    const primaryFile = req.files?.image?.[0];
-    if (tipo === 'carousel') {
-      if (!primaryFile) {
-        const slidesForCleanup = req.files?.carousel_images || [];
-        slidesForCleanup.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
-        return res.status(400).json({ 
-          success: false, 
-          error: "Para carrusel, se requiere una imagen principal (campo 'image')" 
-        });
-      }
-      imagen_url = `/uploads/anuncios/${primaryFile.filename}`;
-      console.log('📸 [Anuncios] Imagen principal subida:', primaryFile.filename);
-    } else if (primaryFile) {
-      imagen_url = `/uploads/anuncios/${primaryFile.filename}`;
-      console.log('📸 [Anuncios] Imagen subida:', primaryFile.filename);
+
+    // Require mensaje only for popup
+    const mensajeRequired = tipo === 'popup';
+    if (mensajeRequired && !mensaje) {
+      const primaryCleanup = req.files?.image?.[0];
+      if (primaryCleanup) deleteImageFile(`/uploads/anuncios/${primaryCleanup.filename}`);
+      const slidesCleanup = req.files?.carousel_images || [];
+      slidesCleanup.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
+      return res.status(400).json({ success: false, error: 'El pop-up requiere mensaje' });
     }
+
+    // Handle primary image (required for all tipos)
+    const primaryFile = req.files?.image?.[0];
+    if (!primaryFile) {
+      const slidesCleanup = req.files?.carousel_images || [];
+      slidesCleanup.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
+      return res.status(400).json({ success: false, error: 'Se requiere imagen principal (campo "image")' });
+    }
+    let imagen_url = `/uploads/anuncios/${primaryFile.filename}`;
+    console.log('📸 [Anuncios] Imagen principal subida:', primaryFile.filename);
     
     // Handle carousel images
     let carousel_images = null;
@@ -367,7 +368,7 @@ async function handleAnuncioUpdate(req, res, id, existing, tipo) {
     }
     return res.status(400).json({ 
       success: false, 
-      error: "tipo inválido. Valores: 'info'|'success'|'warning'|'danger'|'banner'|'popup'|'carousel'" 
+      error: "tipo inválido. Valores: 'info'|'success'|'warning'|'danger'|'banner'|'popup'|'carousel'|'imagepopup'" 
     });
   }
   
@@ -388,17 +389,17 @@ async function handleAnuncioUpdate(req, res, id, existing, tipo) {
   let imagen_url = oldImageUrl;
   let carousel_images = oldCarouselImages;
   
-  // Handle primary image update
-  const primaryFile = req.files?.image?.[0];
-  if (primaryFile) {
-    imagen_url = `/uploads/anuncios/${primaryFile.filename}`;
-    console.log('📸 [Anuncios] Nueva imagen principal subida:', primaryFile.filename);
-    
-    // Delete old image
-    if (oldImageUrl) {
-      deleteImageFile(oldImageUrl, false);
+    // Handle primary image update (still required for carousel changes; optional otherwise if keeping old)
+    const primaryFile = req.files?.image?.[0];
+    if (primaryFile) {
+      imagen_url = `/uploads/anuncios/${primaryFile.filename}`;
+      console.log('📸 [Anuncios] Nueva imagen principal subida:', primaryFile.filename);
+      
+      // Delete old image
+      if (oldImageUrl) {
+        deleteImageFile(oldImageUrl, false);
+      }
     }
-  }
   
   // Handle carousel images update
   if (tipo === 'carousel') {
@@ -414,12 +415,37 @@ async function handleAnuncioUpdate(req, res, id, existing, tipo) {
         deleteCarouselImages(oldCarouselImages);
       }
     }
+    // Enforce at least 2 images (new or existing)
+    const existingSlidesCount = (() => {
+      try {
+        const parsed = JSON.parse(carousel_images || '[]');
+        return Array.isArray(parsed) ? parsed.length : 0;
+      } catch {
+        return 0;
+      }
+    })();
+    if (existingSlidesCount < 2) {
+      const primaryCleanup = req.files?.image?.[0];
+      if (primaryCleanup) deleteImageFile(`/uploads/anuncios/${primaryCleanup.filename}`);
+      const newSlides = req.files?.carousel_images || [];
+      newSlides.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
+      return res.status(400).json({ success: false, error: 'El carrusel requiere al menos 2 imágenes' });
+    }
   } else {
     // If changing from carousel to non-carousel, clean up carousel images
     if (existing.tipo === 'carousel' && oldCarouselImages) {
       deleteCarouselImages(oldCarouselImages);
       carousel_images = null;
     }
+  }
+
+  // Enforce mensaje requirement for popup only
+  if (tipo === 'popup' && (!mensaje || `${mensaje}`.trim() === '')) {
+    const primaryCleanup = req.files?.image?.[0];
+    if (primaryCleanup) deleteImageFile(`/uploads/anuncios/${primaryCleanup.filename}`);
+    const newSlides = req.files?.carousel_images || [];
+    newSlides.forEach(f => deleteImageFile(`/uploads/carousels/${f.filename}`, true));
+    return res.status(400).json({ success: false, error: 'El pop-up requiere mensaje' });
   }
   
   const activoBool = toBool(activo) ?? false;
