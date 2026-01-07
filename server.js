@@ -137,8 +137,17 @@ app.use('/', descargasRoute);
 const anuncios = require('./anuncios');
 app.use('/api/anuncios', anuncios);
 
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Servir archivos estáticos con caché duradera
+const uploadsRoot = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsRoot, {
+  maxAge: '30d',
+  etag: true,
+  immutable: true,
+  setHeaders: (res) => {
+    // 30 días en segundos
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
+}));
 
 // Formulario de contacto (email-only legacy endpoint)
 
